@@ -23,16 +23,26 @@ import "./App.css";
 import "antd/dist/antd.css"; // or 'antd/dist/antd.less'
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 const { Option } = Select;
 
-const sourceData = ["Source1", "Source2", "Source3"];
 const fieldData = {
-  Source1: ["Field1", "Field2", "Time"],
-  Source2: ["Field3", "Field4", "Time"],
-  Source3: ["Field5", "Field6", "Time"],
+  Source1: {
+    fields: ["Field1", "Field2", "first_bytes_ts"],
+    time_column: "first_bytes_ts",
+  },
+  Source2: {
+    fields: ["Field3", "Field4", "Time"],
+    time_column: "Time",
+  },
+  Source3: {
+    fields: ["Field5", "Field6", "Field7", "last_bytes_ts"],
+    time_column: "last_bytes_ts",
+  },
 };
+
+const sourceData = Object.keys(fieldData);
 
 const options = {
   chart: {
@@ -94,20 +104,59 @@ const formItemLayoutWithOutLabel = {
 
 function CreateWidget() {
   const [form] = Form.useForm();
-  console.log(form);
 
-  const [source, setSource] = useState(fieldData[sourceData[0]]);
+  console.log("---sourceData + fieldData---");
+  console.log(sourceData);
+  console.log(fieldData);
+  console.log(fieldData[sourceData[0]].fields);
+  console.log(fieldData[sourceData[0]][0]);
+
+  const [source, setSource] = useState(fieldData[sourceData[0]].fields);
   const [field, setField] = useState(fieldData[sourceData[0]][0]);
   const [breakDisable, setBreakDisable] = useState(false);
   const [breakData, setBreakData] = useState(["Time"]);
+  const [numberOfGroupByFields, setNumberOfGroupByFields] = useState(0);
+  const [selectedItems, setSelectedItems] = useState([]);
 
-  console.log("source: " + source);
-  console.log("field: " + field);
+  const filteredOptions = source.filter((o) => !selectedItems.includes(o));
+
+  const setSelectedItemsTest = () => {
+    console.log("---setSelectedItemsTest---");
+    // setSelectedItems((prev) => [...prev, value]);
+    // console.log(value);
+    // setSelectedItems();
+    // if (obj !== undefined) return obj["select-group"];
+    const dataDefined = form
+      .getFieldValue("group_by")
+      .filter((obj) => obj !== undefined);
+    const data = dataDefined.map((obj) => obj["select-group"]);
+    console.log(data);
+    setSelectedItems(data);
+    // console.log(selectedItems);
+  };
+
+  // const numberOfGroupByFields = useRef(0);
+
+  // const setNumberOfGroupByFields = (value) => {
+  //   numberOfGroupByFields.current = value;
+  //   console.log("---set number of group by fields---");
+  //   console.log(numberOfGroupByFields);
+  //   console.log(numberOfGroupByFields.current);
+  // };
+
+  console.log("source + field");
+  console.log(source);
+  console.log(field);
 
   const handleSourceChange = (value) => {
     console.log("handleSourceChange Run!");
-    setSource(fieldData[value]);
-    setField(fieldData[value][0]);
+    // console.log(value);
+    // console.log(fieldData[value].fields);
+    // console.log(fieldData[value].fields[0]);
+    setSource(fieldData[value].fields);
+    setField(fieldData[value].fields[0]);
+    setNumberOfGroupByFields(0);
+    setBreakDisable(false);
     // console.log(onFinish());
   };
 
@@ -314,7 +363,10 @@ function CreateWidget() {
                         : console.log("false")} */}
                       {fields.map((field, index) => (
                         <Row>
-                          {console.log(field.name)}
+                          {/* {setNumberOfGroupByFields(index + 1)} */}
+                          {console.log("---add limit of add---")}
+                          {console.log(field)}
+                          {console.log(index)}
                           <Col span={11}>
                             <Form.Item
                               name={[field.name, "select-group"]}
@@ -324,11 +376,21 @@ function CreateWidget() {
                                 style={{
                                   width: 150,
                                 }}
-                                onChange={handleBreakData}
+                                onChange={(value) => {
+                                  // handleBreakData();
+                                  // setSelectedItems((prev) => [...prev, value]);
+                                  setSelectedItemsTest();
+                                }}
+                                // onChange={setSelectedItemsTest}
                               >
-                                {source.map((src) => (
-                                  <Option key={src}>{src}</Option>
+                                {filteredOptions.map((item) => (
+                                  <Select.Option key={item} value={item}>
+                                    {item}
+                                  </Select.Option>
                                 ))}
+                                {/* {source.map((src) => (
+                                  <Option key={src}>{src}</Option>
+                                ))} */}
                               </Select>
                             </Form.Item>
                           </Col>
@@ -343,29 +405,42 @@ function CreateWidget() {
                           <Col span={2}>
                             <MinusCircleOutlined
                               className="dynamic-delete-button"
-                              onClick={() => {
+                              onClick={(value) => {
+                                // setSelectedItems((prev) => {
+                                //   console.log(prev);
+                                //   console.log(value);
+                                //   return prev.filter((p) => p !== value);
+                                // });
                                 remove(field.name);
                                 handleBreakDisable();
+                                setNumberOfGroupByFields((prev) => prev - 1);
+                                setSelectedItemsTest();
                               }}
                             />
                           </Col>
                         </Row>
                       ))}
                       <Form.Item>
+                        {console.log("---test btn---")}
+                        {console.log(numberOfGroupByFields)}
+                        {console.log(source.length)}
+                        {console.log(numberOfGroupByFields > source.length)}
                         <Button
                           type="dashed"
                           onClick={() => {
                             add();
                             handleBreakDisable();
+                            setNumberOfGroupByFields((prev) => prev + 1);
+                            setSelectedItemsTest();
                           }}
                           style={{
                             width: "100%",
                           }}
                           icon={<PlusOutlined />}
+                          disabled={numberOfGroupByFields >= source.length}
                         >
                           Add field
                         </Button>
-
                         <Form.ErrorList errors={errors} />
                       </Form.Item>
                     </>
