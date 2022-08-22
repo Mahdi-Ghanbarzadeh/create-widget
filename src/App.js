@@ -116,6 +116,9 @@ function CreateWidget() {
 
   const filteredOptions = source.filter((o) => !selectedItems.includes(o));
 
+  console.log("---breakData---");
+  console.log(breakData);
+
   const HandleSelectedItems = () => {
     const data = form
       .getFieldValue("group_by")
@@ -133,6 +136,8 @@ function CreateWidget() {
     setField(fieldData[value].fields[0]);
     setNumberOfGroupByFields(0);
     setBreakDisable(false);
+    console.log(value);
+    setBreakData([fieldData[value].time_column]);
   };
 
   const onFieldChange = (value) => {
@@ -148,8 +153,39 @@ function CreateWidget() {
   };
 
   const handleBreakData = (value) => {
+    form.setFieldsValue({ break_by: null });
     console.log("---handle break data---");
     console.log(value);
+    const data = form
+      .getFieldValue("group_by")
+      .map((v) => v?.[["select-group"]]);
+    const len = data.length;
+    console.log("---data---");
+    console.log(breakData.includes(value));
+    console.log(data);
+    console.log(len);
+    console.log(form.getFieldValue("source"));
+
+    if (len === 0) {
+      if (
+        !breakData.includes(fieldData[form.getFieldValue("source")].time_column)
+      )
+        // setBreakData((prev) => [...prev, fieldData[sourceData[0]].time_column]);
+        setBreakData([
+          ...new Set([fieldData[form.getFieldValue("source")].time_column]),
+        ]);
+    } else if (len === 1 && !breakData.includes(value)) {
+      setBreakData([
+        ...new Set([
+          ...data,
+          fieldData[form.getFieldValue("source")].time_column,
+        ]),
+      ]);
+    } else {
+      setBreakData([...new Set(data)]);
+    }
+    console.log(breakData);
+
     // console.log("---");
     // console.log(form.getFieldValue("group_by"));
     // console.log(breakData);
@@ -350,6 +386,7 @@ function CreateWidget() {
                                 handleBreakDisable();
                                 setNumberOfGroupByFields((prev) => prev - 1);
                                 HandleSelectedItems();
+                                handleBreakData();
                               }}
                             />
                           </Col>
@@ -383,7 +420,7 @@ function CreateWidget() {
           <br />
           <br />
 
-          <Form.Item name="break-by" label="Break by">
+          <Form.Item name="break_by" label="Break by">
             <Select
               style={{
                 width: 150,
