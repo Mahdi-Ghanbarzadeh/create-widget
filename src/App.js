@@ -145,7 +145,43 @@ function CreateWidget() {
   };
 
   const onFinish = (values) => {
-    console.log("Received values of form: ", values);
+    // console.log("Received values of form: ", values);
+    // console.log(values.operand_function);
+    let str = `select ${values.operand_function} (${values.operand_field})`;
+    if (values.operand_label !== undefined && values.operand_label !== "")
+      str += ` as ${values.operand_label}`;
+    if (values.group_by !== undefined && values.group_by.length !== 0)
+      str += `,${values.group_by.map(
+        (obj) =>
+          `${obj["select-group"]} ${
+            obj["label-group"] !== undefined && obj["label-group"] !== ""
+              ? `as ${obj["label-group"]}`
+              : ""
+          }`
+      )}`;
+    str += `\nfrom ${values.source}`;
+    str += `\nwhere ${
+      values.filters !== undefined && values.filters !== ""
+        ? `${values.filters} and `
+        : ""
+    }${values.time}`;
+    if (values.group_by !== undefined && values.group_by.length !== 0)
+      str += `\ngroup by ${values.group_by.map((obj) => obj["select-group"])}`;
+    if (values.order_by !== undefined) str += `\norder by ${values.order_by}`;
+    if (values.limit !== undefined && values.limit !== null)
+      str += `\nlimit ${values.limit}`;
+
+    // let str2 = `${values.operand_function} (${values.operand_field}) ${
+    //   values.operand_label !== undefined ? `as ${values.operand_label}` : ""
+    // }  \nselect ${values.group_by.map((obj) => obj["select-group"])} \nfrom ${
+    //   values.source
+    // }\nwhere ${values.filters !== undefined ? `${values.filters} and ` : ""}${
+    //   values.time
+    // } \ngroup by ${values.group_by.map((obj) => obj["select-group"])}${
+    //   values.order_by !== undefined ? `\norder by ${values.order_by}\n` : ""
+    // }${values.limit !== undefined ? `limit ${values.limit}` : ""}`;
+    // console.log(str2);
+    console.log(str);
   };
 
   const handleBreakDisable = () => {
@@ -153,7 +189,7 @@ function CreateWidget() {
   };
 
   const handleBreakData = (value) => {
-    form.setFieldsValue({ break_by: null });
+    form.setFieldsValue({ break_by: undefined });
     console.log("---handle break data---");
     console.log(value);
     const data = form
@@ -170,7 +206,6 @@ function CreateWidget() {
       if (
         !breakData.includes(fieldData[form.getFieldValue("source")].time_column)
       )
-        // setBreakData((prev) => [...prev, fieldData[sourceData[0]].time_column]);
         setBreakData([
           ...new Set([fieldData[form.getFieldValue("source")].time_column]),
         ]);
@@ -184,55 +219,18 @@ function CreateWidget() {
     } else {
       setBreakData([...new Set(data)]);
     }
-    console.log(breakData);
-
-    // console.log("---");
-    // console.log(form.getFieldValue("group_by"));
-    // console.log(breakData);
-    // const data = form.getFieldValue("group_by");
-    // const len = data.length;
-    // console.log(data);
-    // console.log(len);
-    // if (len === 1) {
-    //   // console.log("len 1");
-    //   // console.log(data);
-    //   // console.log(data[0]["select-group"]);
-    //   // const ddtest = data[0]["select-group"];
-    //   // if (ddtest === "Time") {
-    //   //   console.log("return");
-    //   //   return;
-    //   // }
-    //   // const dd = data.map((d) => d["select-group"]);
-    //   // // const ddtime = dd.filter((f) => f !== "Time");
-    //   // console.log("--dd--");
-    //   // console.log(dd);
-    //   // dd.push("Time");
-    //   // console.log(dd);
-    //   // setBreakData(data);
-    //   console.log("len 1");
-    //   const dd = data.map((d) => d["select-group"]);
-    //   console.log(dd);
-    //   if (!dd.includes("Time")) dd.push("Time");
-    //   setBreakData(dd);
-    //   data.map((d) => console.log(d.value));
-    // } else if (len === 2) {
-    //   console.log("len 2");
-    //   const dd = data.map((d) => d["select-group"]);
-    //   console.log(dd);
-    //   setBreakData(dd);
-    //   data.map((d) => console.log(d.value));
-    // }
-    // console.log("group by: ", form.getFieldValue("group_by"));
-    // console.log("group by: ", form.getFieldValue("group_by").length);
-    // if (form.getFieldValue("group_by") === undefined) return false;
-    // else return form.getFieldValue("group_by").length > 2;
-    // setBreakData(form.getFieldValue("group_by").length > 2);
   };
 
   const getField = () => {
-    form.setFieldsValue({ operand_field: null });
-    form.setFieldsValue({ group_by: null });
-    form.setFieldsValue({ order_by: null });
+    form.setFieldsValue({ operand_function: undefined });
+    form.setFieldsValue({ operand_field: undefined });
+    form.setFieldsValue({ operand_label: undefined });
+    form.setFieldsValue({ group_by: undefined });
+    form.setFieldsValue({ order_by: undefined });
+    form.setFieldsValue({ break_by: undefined });
+    form.setFieldsValue({ limit: undefined });
+    form.setFieldsValue({ time: undefined });
+    form.setFieldsValue({ filters: undefined });
   };
 
   return (
@@ -352,6 +350,12 @@ function CreateWidget() {
                             <Form.Item
                               name={[field.name, "select-group"]}
                               label="Field"
+                              rules={[
+                                {
+                                  required: true,
+                                  message: "Please input Field!",
+                                },
+                              ]}
                             >
                               <Select
                                 style={{
