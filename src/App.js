@@ -8,6 +8,8 @@ import {
   Col,
   InputNumber,
   Divider,
+  Typography,
+  Space,
 } from "antd";
 import {
   MinusCircleOutlined,
@@ -26,6 +28,7 @@ import HighchartsReact from "highcharts-react-official";
 import { useState, useRef } from "react";
 
 const { Option } = Select;
+const { Text } = Typography;
 
 const fieldData = {
   Source1: {
@@ -104,6 +107,7 @@ const formItemLayoutWithOutLabel = {
 
 function CreateWidget() {
   const [form] = Form.useForm();
+  const codeRef = useRef(null);
 
   const [source, setSource] = useState(fieldData[sourceData[0]].fields);
   const [field, setField] = useState(fieldData[sourceData[0]][0]);
@@ -147,11 +151,13 @@ function CreateWidget() {
   const onFinish = (values) => {
     // console.log("Received values of form: ", values);
     // console.log(values.operand_function);
-    let str = `select ${values.operand_function} (${values.operand_field})`;
+    // console.log(form.getFieldValue("source"));
+    // console.log(form.getFieldValue("source").time_column);
+    let queryOutput = `select ${values.operand_function} (${values.operand_field})`;
     if (values.operand_label !== undefined && values.operand_label !== "")
-      str += ` as ${values.operand_label}`;
+      queryOutput += ` as ${values.operand_label}`;
     if (values.group_by !== undefined && values.group_by.length !== 0)
-      str += `,${values.group_by.map(
+      queryOutput += `,${values.group_by.map(
         (obj) =>
           `${obj["select-group"]} ${
             obj["label-group"] !== undefined && obj["label-group"] !== ""
@@ -159,17 +165,20 @@ function CreateWidget() {
               : ""
           }`
       )}`;
-    str += `\nfrom ${values.source}`;
-    str += `\nwhere ${
+    queryOutput += `\nfrom ${values.source}`;
+    queryOutput += `\nwhere ${
       values.filters !== undefined && values.filters !== ""
         ? `${values.filters} and `
         : ""
-    }${values.time}`;
+    }${fieldData[form.getFieldValue("source")].time_column}=${values.time}`;
     if (values.group_by !== undefined && values.group_by.length !== 0)
-      str += `\ngroup by ${values.group_by.map((obj) => obj["select-group"])}`;
-    if (values.order_by !== undefined) str += `\norder by ${values.order_by}`;
+      queryOutput += `\ngroup by ${values.group_by.map(
+        (obj) => obj["select-group"]
+      )}`;
+    if (values.order_by !== undefined)
+      queryOutput += `\norder by ${values.order_by}`;
     if (values.limit !== undefined && values.limit !== null)
-      str += `\nlimit ${values.limit}`;
+      queryOutput += `\nlimit ${values.limit}`;
 
     // let str2 = `${values.operand_function} (${values.operand_field}) ${
     //   values.operand_label !== undefined ? `as ${values.operand_label}` : ""
@@ -181,7 +190,11 @@ function CreateWidget() {
     //   values.order_by !== undefined ? `\norder by ${values.order_by}\n` : ""
     // }${values.limit !== undefined ? `limit ${values.limit}` : ""}`;
     // console.log(str2);
-    console.log(str);
+    console.log(codeRef);
+    console.log(codeRef.current.textContent);
+    codeRef.current.textContent = queryOutput;
+    // codeRef.current.textContent = "test";
+    console.log(queryOutput);
   };
 
   const handleBreakDisable = () => {
@@ -473,6 +486,16 @@ function CreateWidget() {
             <Input />
           </Form.Item>
           <Divider />
+          <Space size={"large"} direction="vertical">
+            <Text code>
+              <span ref={codeRef}>Submit the form to show query</span>
+            </Text>
+            <Form.Item>
+              <Button type="primary" htmlType="submit">
+                Submit
+              </Button>
+            </Form.Item>
+          </Space>
           <Row justify="center">
             <Col span={2}>
               <Form.Item>
@@ -522,11 +545,6 @@ function CreateWidget() {
               </Form.Item>
             </Col>
           </Row>
-          <Form.Item>
-            <Button type="primary" htmlType="submit">
-              Submit
-            </Button>
-          </Form.Item>
         </Form>
 
         <Row justify="center">
