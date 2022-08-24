@@ -26,7 +26,7 @@ import "./App.css";
 import "antd/dist/antd.css"; // or 'antd/dist/antd.less'
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -121,6 +121,33 @@ function CreateWidget() {
 
   const filteredOptions = source.filter((o) => !selectedItems.includes(o));
 
+  const [functionRequired, setFunctionRequired] = useState(true);
+
+  useEffect(() => {
+    console.log("run");
+    console.log(form.getFieldValue("group_by"));
+    console.log(numberOfGroupByFields);
+    // console.log(functionRequired);
+    if (numberOfGroupByFields === 0) setFunctionRequired(true);
+    else setFunctionRequired(false);
+    form.validateFields(["Function"]);
+  }, [numberOfGroupByFields, form]);
+
+  useEffect(() => {
+    console.log("run2");
+    console.log(functionRequired);
+    console.log(form.validateFields(["Function"]));
+    form.validateFields(["Function"]);
+  }, [functionRequired, form]);
+
+  // const functionRequiredHandler = () => {
+  //   console.log("run");
+  //   console.log(form.getFieldValue("group_by"));
+  //   console.log(numberOfGroupByFields);
+  //   if (numberOfGroupByFields === 0) setFunctionRequired(true);
+  //   else setFunctionRequired(false);
+  // };
+
   const HandleSelectedItems = () => {
     const data = form
       .getFieldValue("group_by")
@@ -142,8 +169,15 @@ function CreateWidget() {
   };
 
   const onFinish = (values) => {
-    // add select to query, example: select count(Field1)
-    let queryOutput = `select ${values.operand_function} (${values.operand_field})`;
+    let queryOutput = "select";
+    // add select options to query, example: select count(Field1)
+    // if function selected, add it to select
+    // example: select count(Field1)
+    if (values.operand_function !== undefined)
+      queryOutput += ` ${values.operand_function} (${values.operand_field})`;
+    // if function doesn't selected, only add the field
+    // example: select Field1
+    else queryOutput += ` ${values.operand_field}`;
 
     // add label of select to query, example: select count(Field1) as f1
     if (values.operand_label !== undefined && values.operand_label !== "")
@@ -277,8 +311,9 @@ function CreateWidget() {
                       label="Function"
                       rules={[
                         {
-                          required: true,
-                          message: "Please select your function!",
+                          required: functionRequired,
+                          message:
+                            "Please select Function or add Group By Field!",
                         },
                       ]}
                     >
@@ -389,6 +424,7 @@ function CreateWidget() {
                                 setNumberOfGroupByFields((prev) => prev - 1);
                                 HandleSelectedItems();
                                 handleBreakData();
+                                // functionRequiredHandler();
                               }}
                             />
                           </Col>
@@ -402,6 +438,7 @@ function CreateWidget() {
                             handleBreakDisable();
                             setNumberOfGroupByFields((prev) => prev + 1);
                             HandleSelectedItems();
+                            // functionRequiredHandler();
                           }}
                           style={{
                             width: "100%",
