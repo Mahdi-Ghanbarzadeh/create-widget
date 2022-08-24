@@ -11,6 +11,7 @@ import {
   Typography,
   Space,
 } from "antd";
+
 import {
   MinusCircleOutlined,
   PlusOutlined,
@@ -120,27 +121,19 @@ function CreateWidget() {
 
   const filteredOptions = source.filter((o) => !selectedItems.includes(o));
 
-  console.log("---breakData---");
-  console.log(breakData);
-
   const HandleSelectedItems = () => {
     const data = form
       .getFieldValue("group_by")
-      .filter((obj) => obj !== undefined)
-      .map((obj) => obj["select-group"]);
+      .filter((groupObject) => groupObject !== undefined)
+      .map((groupObject) => groupObject["select-group"]);
     setSelectedItems(data);
   };
 
   const handleSourceChange = (value) => {
-    console.log("handleSourceChange Run!");
-    // console.log(value);
-    // console.log(fieldData[value].fields);
-    // console.log(fieldData[value].fields[0]);
     setSource(fieldData[value].fields);
     setField(fieldData[value].fields[0]);
     setNumberOfGroupByFields(0);
     setBreakDisable(false);
-    console.log(value);
     setBreakData([fieldData[value].time_column]);
   };
 
@@ -149,13 +142,15 @@ function CreateWidget() {
   };
 
   const onFinish = (values) => {
-    // console.log("Received values of form: ", values);
-    // console.log(values.operand_function);
-    // console.log(form.getFieldValue("source"));
-    // console.log(form.getFieldValue("source").time_column);
+    // add select to query, example: select count(Field1)
     let queryOutput = `select ${values.operand_function} (${values.operand_field})`;
+
+    // add label of select to query, example: select count(Field1) as f1
     if (values.operand_label !== undefined && values.operand_label !== "")
       queryOutput += ` as ${values.operand_label}`;
+
+    // add Group by objects to select
+    // example: select count (Field1), Field2 as f2
     if (values.group_by !== undefined && values.group_by.length !== 0)
       queryOutput += `,${values.group_by.map(
         (obj) =>
@@ -165,36 +160,33 @@ function CreateWidget() {
               : ""
           }`
       )}`;
+
+    // add from to query, example: from Source1
     queryOutput += `\nfrom ${values.source}`;
+
+    // add where to query
+    // example: where Field1 > 10 and first_bytes_ts=1390
     queryOutput += `\nwhere ${
       values.filters !== undefined && values.filters !== ""
         ? `${values.filters} and `
         : ""
     }${fieldData[form.getFieldValue("source")].time_column}=${values.time}`;
+
+    // add group by to query, example: group by Field2
     if (values.group_by !== undefined && values.group_by.length !== 0)
       queryOutput += `\ngroup by ${values.group_by.map(
         (obj) => obj["select-group"]
       )}`;
+
+    // add order by to query, example: order by Field1
     if (values.order_by !== undefined)
       queryOutput += `\norder by ${values.order_by}`;
+
+    // add limit to query, example: limit 1000
     if (values.limit !== undefined && values.limit !== null)
       queryOutput += `\nlimit ${values.limit}`;
 
-    // let str2 = `${values.operand_function} (${values.operand_field}) ${
-    //   values.operand_label !== undefined ? `as ${values.operand_label}` : ""
-    // }  \nselect ${values.group_by.map((obj) => obj["select-group"])} \nfrom ${
-    //   values.source
-    // }\nwhere ${values.filters !== undefined ? `${values.filters} and ` : ""}${
-    //   values.time
-    // } \ngroup by ${values.group_by.map((obj) => obj["select-group"])}${
-    //   values.order_by !== undefined ? `\norder by ${values.order_by}\n` : ""
-    // }${values.limit !== undefined ? `limit ${values.limit}` : ""}`;
-    // console.log(str2);
-    console.log(codeRef);
-    console.log(codeRef.current.textContent);
     codeRef.current.textContent = queryOutput;
-    // codeRef.current.textContent = "test";
-    console.log(queryOutput);
   };
 
   const handleBreakDisable = () => {
@@ -203,26 +195,19 @@ function CreateWidget() {
 
   const handleBreakData = (value) => {
     form.setFieldsValue({ break_by: undefined });
-    console.log("---handle break data---");
-    console.log(value);
     const data = form
       .getFieldValue("group_by")
-      .map((v) => v?.[["select-group"]]);
-    const len = data.length;
-    console.log("---data---");
-    console.log(breakData.includes(value));
-    console.log(data);
-    console.log(len);
-    console.log(form.getFieldValue("source"));
+      .map((groupObject) => groupObject?.[["select-group"]]);
+    const lengthOfGroup = data.length;
 
-    if (len === 0) {
+    if (lengthOfGroup === 0) {
       if (
         !breakData.includes(fieldData[form.getFieldValue("source")].time_column)
       )
         setBreakData([
           ...new Set([fieldData[form.getFieldValue("source")].time_column]),
         ]);
-    } else if (len === 1 && !breakData.includes(value)) {
+    } else if (lengthOfGroup === 1 && !breakData.includes(value)) {
       setBreakData([
         ...new Set([
           ...data,
